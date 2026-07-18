@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Body, status
 from fastapi.responses import JSONResponse
 app = FastAPI()
 tasks = [
@@ -13,7 +13,7 @@ def root():
     "version": "1.0",
     "endpoints": ["/tasks"]
 }
-@app.get("/health") #When someone requests /health, FastAPI runs the health() function and returns the status.
+@app.get("/health") #When someone requests /health (give me health), FastAPI runs the health() function and returns the status.
 def health():
     return {"status": "ok"}
 
@@ -30,3 +30,21 @@ def get_task(id: int):
     status_code=404,
     content={"error": f"Task {id} not found"}
 )
+
+@app.post("/tasks", status_code=status.HTTP_201_CREATED) #When someone sends a POST request to /tasks, take the JSON from the request body, store it in the variable task, and run the create_task function. return HTTP status 201 (Created)
+def create_task(task=Body()):
+    title = task.get("title")
+
+    if title is None or title == "":
+        return JSONResponse(
+        status_code=400,
+        content={"error": "Title cannot be empty"}
+    )
+
+    new_task = {
+        "id": len(tasks) + 1,
+        "title": title,
+        "done": False
+    }
+    tasks.append(new_task)
+    return new_task
