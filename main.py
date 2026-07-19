@@ -6,7 +6,7 @@ tasks = [
     {"id": 2, "title": "Buy groceries", "done": True},
     {"id": 3, "title": "Go to the gym", "done": False},
 ]
-@app.get("/") #If someone sends a GET request to the path /, execute the function below.
+@app.get("/") #If someone sends a GET request to the path /, execute the function below. (get creates data)
 def root():
     return {
     "name": "Task API",
@@ -31,7 +31,7 @@ def get_task(id: int):
     content={"error": f"Task {id} not found"}
 )
 
-@app.post("/tasks", status_code=status.HTTP_201_CREATED) #When someone sends a POST request to /tasks, take the JSON from the request body, store it in the variable task, and run the create_task function. return HTTP status 201 (Created)
+@app.post("/tasks", status_code=status.HTTP_201_CREATED) #When someone sends a POST(create) request to /tasks, take the JSON from the request body, store it in the variable task, and run the create_task function. return HTTP status 201 (Created)
 def create_task(task=Body()):
     title = task.get("title")
 
@@ -48,3 +48,39 @@ def create_task(task=Body()):
     }
     tasks.append(new_task)
     return new_task
+
+@app.put("/tasks/{id}") ##When someone sends a PUT (update) request to /tasks/{id}, take the id from the URL, take the JSON from the request body, store it in the variable task, run the update_task function.
+def update_task(id: int, task=Body()):
+
+    if task == {}:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Request body cannot be empty"}
+        )
+
+    for existing_task in tasks:
+        if existing_task["id"] == id:
+
+            if "title" in task:
+                existing_task["title"] = task["title"]
+
+            if "done" in task:
+                existing_task["done"] = task["done"]
+
+            return existing_task
+
+    return JSONResponse(
+        status_code=404,
+        content={"error": f"Task {id} not found"}
+    )
+
+@app.delete("/tasks/{id}", status_code=status.HTTP_204_NO_CONTENT) ##When someone sends a DELETE request to /tasks/{id}, find the task with that id, run the delete_task function, and return HTTP status 204 (No Content) if successful.
+def delete_task(id: int):
+     for existing_task in tasks:
+        if existing_task["id"] == id:
+            tasks.remove(existing_task)
+            return
+     return JSONResponse(
+        status_code=404,
+        content={"error": f"Task {id} not found"}
+    )
