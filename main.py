@@ -18,8 +18,28 @@ def health():
     return {"status": "ok"}
 
 @app.get("/tasks", summary="Get all tasks")
-def get_tasks():
-    return tasks
+def get_tasks(
+    done: bool | None = None,
+    search: str | None = None
+):
+
+    filtered_tasks = tasks
+
+    if done is not None:
+        filtered_tasks = [
+            task
+            for task in filtered_tasks
+            if task["done"] == done
+        ]
+
+    if search is not None:
+        filtered_tasks = [
+            task
+            for task in filtered_tasks
+            if search.lower() in task["title"].lower()
+        ]
+
+    return filtered_tasks
 
 @app.get("/tasks/{id}", summary="Get a task by ID")
 def get_task(id: int):
@@ -84,3 +104,36 @@ def delete_task(id: int):
         status_code=404,
         content={"error": f"Task {id} not found"}
     )
+
+@app.get("/stats", summary="Get task statistics")
+def get_stats():
+    total = len(tasks)
+    done = 0
+
+    for task in tasks:
+        if task["done"]:
+            done += 1
+    
+    open_tasks = total - done
+
+    return {
+        "total": total,
+        "done": done,
+        "open": open_tasks
+    }
+
+@app.post("/reset", summary="Reset tasks")
+def reset_tasks():
+
+    tasks.clear()
+
+    tasks.extend([
+        {"id": 1, "title": "Study FastAPI", "done": False},
+        {"id": 2, "title": "Buy groceries", "done": True},
+        {"id": 3, "title": "Go to the gym", "done": False},
+    ])
+
+    return {
+        "message": "Tasks reset successfully",
+        "tasks": tasks
+    }
