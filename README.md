@@ -127,6 +127,7 @@ Open:
 http://127.0.0.1:8000/docs
 ```
 
+Tasks are stored only in memory, so any new tasks or changes disappear when the server restarts. A database is needed to keep data permanently.
 You can test every endpoint directly from your browser using the **Try it out** button.
 <img width="884" height="548" alt="image" src="https://github.com/user-attachments/assets/29284eca-3a31-47d6-8021-22745c76c23a" />
 
