@@ -69,7 +69,7 @@ def create_task(task=Body()):
     tasks.append(new_task)
     return new_task
 
-@app.put("/tasks/{id}", summary="Update a task") ##When someone sends a PUT (update) request to /tasks/{id}, take the id from the URL, take the JSON from the request body, store it in the variable task, run the update_task function.
+@app.put("/tasks/{id}", summary="Update a task")  ##When someone sends a PUT (update) request to /tasks/{id}, take the id from the URL, take the JSON from the request body, store it in the variable task, run the update_task function.
 def update_task(id: int, task=Body()):
 
     if task == {}:
@@ -82,6 +82,12 @@ def update_task(id: int, task=Body()):
         if existing_task["id"] == id:
 
             if "title" in task:
+                if task["title"] is None or task["title"] == "":
+                    return JSONResponse(
+                        status_code=400,
+                        content={"error": "Title cannot be empty"}
+                    )
+
                 existing_task["title"] = task["title"]
 
             if "done" in task:
