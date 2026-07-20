@@ -132,240 +132,142 @@ You can test every endpoint directly from your browser using the **Try it out** 
 <img width="884" height="548" alt="image" src="https://github.com/user-attachments/assets/29284eca-3a31-47d6-8021-22745c76c23a" />
 
 
-## AI vs Me
+# AI vs Me
 
-### Prompt
+## Prompt
 
-"""
-Task API
---------
-A simple REST API built with FastAPI that stores tasks in memory using
-a plain Python list (no database, no ORM, no Pydantic models).
+```text
+Build a REST API using Python and FastAPI.
 
-Run with:
-    uvicorn main:app --reload
+Store all data in memory using a Python list. Do not use a database, ORM, SQLAlchemy, or Pydantic models.
 
-Then open the automatic Swagger UI at:
-    http://127.0.0.1:8000/docs
-"""
+Each task should have:
+- id (integer)
+- title (string)
+- done (boolean)
 
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+Initialize the API with these three tasks:
 
-app = FastAPI(title="Task API", version="1.0")
-
-
-# ---------------------------------------------------------------------------
-# In-memory data store
-# ---------------------------------------------------------------------------
-
-# The "original" tasks, kept separate so /reset can restore them without
-# being affected by later mutations of `tasks`.
-DEFAULT_TASKS = [
-    {"id": 1, "title": "Study FastAPI", "done": False},
-    {"id": 2, "title": "Buy groceries", "done": True},
-    {"id": 3, "title": "Go to the gym", "done": False},
+[
+  {"id": 1, "title": "Study FastAPI", "done": false},
+  {"id": 2, "title": "Buy groceries", "done": true},
+  {"id": 3, "title": "Go to the gym", "done": false}
 ]
 
-# The live list of tasks. We copy the default tasks (as new dicts) so that
-# mutating `tasks` never mutates DEFAULT_TASKS.
-tasks = [task.copy() for task in DEFAULT_TASKS]
+Implement the following endpoints:
 
+GET /
+- Return:
+{
+  "name": "Task API",
+  "version": "1.0",
+  "endpoints": ["/tasks"]
+}
 
-# ---------------------------------------------------------------------------
-# Helper functions
-# ---------------------------------------------------------------------------
+GET /health
+- Return:
+{
+  "status": "ok"
+}
 
-def find_task(task_id: int):
-    """Return the task dict with the given id, or None if not found."""
-    for task in tasks:
-        if task["id"] == task_id:
-            return task
-    return None
+GET /tasks
+- Return all tasks.
+- Support these optional query parameters:
+  - done (boolean): filter tasks by completion status.
+  - search (string): perform a case-insensitive search on the task title.
+- If both query parameters are provided, apply both filters.
 
+GET /tasks/{id}
+- Return the task with the given ID.
+- If the task does not exist, return HTTP 404 with:
+{
+  "error": "Task {id} not found"
+}
 
-# ---------------------------------------------------------------------------
-# Root & health endpoints
-# ---------------------------------------------------------------------------
+POST /tasks
+- Accept a JSON body containing:
+{
+  "title": "..."
+}
+- If the title is missing or empty, return HTTP 400 with:
+{
+  "error": "Title cannot be empty"
+}
+- Create a new task with:
+  - id = len(tasks) + 1
+  - title from the request
+  - done = false
+- Return HTTP 201 Created.
 
-@app.get("/")
-def read_root():
-    """Basic info about the API."""
-    return {
-        "name": "Task API",
-        "version": "1.0",
-        "endpoints": ["/tasks"],
-    }
+PUT /tasks/{id}
+- Accept a JSON body.
+- Allow updating:
+  - title
+  - done
+- If the body is empty, return HTTP 400:
+{
+  "error": "Request body cannot be empty"
+}
+- If the task does not exist, return HTTP 404.
 
+DELETE /tasks/{id}
+- Delete the task.
+- Return HTTP 204 No Content.
+- If the task is not found, return HTTP 404.
 
-@app.get("/health")
-def health_check():
-    """Simple health check endpoint."""
-    return {"status": "ok"}
+GET /stats
+- Return:
+{
+  "total": number of tasks,
+  "done": number of completed tasks,
+  "open": number of incomplete tasks
+}
 
+POST /reset
+- Restore the original three example tasks.
+- Return a success message together with the restored task list.
 
-# ---------------------------------------------------------------------------
-# Task endpoints
-# ---------------------------------------------------------------------------
+Additional requirements:
+- Use FastAPI's automatic Swagger UI.
+- Use proper HTTP status codes (200, 201, 204, 400, 404).
+- Use JSONResponse for custom error responses.
+- Keep the implementation in a single file named main.py.
+- Do not add authentication, databases, Docker, or any extra features that were not requested.
+- Write clean, readable code with comments explaining the important parts.
+```
 
-@app.get("/tasks")
-def get_tasks(done: bool | None = None, search: str | None = None):
-    """
-    Return all tasks, optionally filtered by:
-    - done: exact match on completion status
-    - search: case-insensitive substring match on the title
-    Both filters can be combined.
-    """
-    result = tasks
+---
 
-    if done is not None:
-        result = [task for task in result if task["done"] == done]
+## What the AI Did Better
 
-    if search is not None:
-        search_lower = search.lower()
-        result = [task for task in result if search_lower in task["title"].lower()]
+- Created a reusable `find_task()` helper function instead of repeating the same search loop in multiple endpoints.
+- Stored the original tasks in a separate `DEFAULT_TASKS` list, making the reset endpoint cleaner and safer.
+- Organized the code with section headings, docstrings, and clearer function names.
+- Converted the search text to lowercase once before filtering.
 
-    return result
+---
 
+## What the AI Got Wrong
 
-@app.get("/tasks/{task_id}")
-def get_task(task_id: int):
-    """Return a single task by id, or a 404 error if it doesn't exist."""
-    task = find_task(task_id)
-    if task is None:
-        return JSONResponse(
-            status_code=404,
-            content={"error": f"Task {task_id} not found"},
-        )
-    return task
+- Returned a `JSONResponse` for HTTP 204, even though a 204 response should not contain a body.
+- Used raw `Request` objects for POST and PUT, which made the request-body format less clear in Swagger.
+- Accepted unknown fields and invalid values in PUT requests without extra validation.
 
+---
 
-@app.post("/tasks")
-async def create_task(request: Request):
-    """
-    Create a new task from a raw JSON body: {"title": "..."}.
-    No Pydantic model is used, so the body is parsed and validated manually.
-    """
-    try:
-        body = await request.json()
-    except Exception:
-        body = None
+## What My Prompt Forgot to Specify
 
-    # Extract and validate the title
-    title = None
-    if isinstance(body, dict):
-        title = body.get("title")
+- Whether PUT should reject unknown fields.
+- Whether an empty title should also be rejected during updates.
+- Whether `done` must strictly be a boolean.
+- That a successful DELETE response must contain no body.
+- Whether the endpoint functions should be synchronous or asynchronous.
 
-    if not title or not isinstance(title, str) or not title.strip():
-        return JSONResponse(
-            status_code=400,
-            content={"error": "Title cannot be empty"},
-        )
+---
 
-    # Create the new task. id is simply len(tasks) + 1 as specified.
-    new_task = {
-        "id": len(tasks) + 1,
-        "title": title,
-        "done": False,
-    }
-    tasks.append(new_task)
+## Rematch
 
-    return JSONResponse(status_code=201, content=new_task)
-
-
-@app.put("/tasks/{task_id}")
-async def update_task(task_id: int, request: Request):
-    """
-    Update an existing task's title and/or done status from a raw JSON body.
-    """
-    try:
-        body = await request.json()
-    except Exception:
-        body = None
-
-    # An empty body (or non-dict / dict with no keys) is rejected.
-    if not body or not isinstance(body, dict):
-        return JSONResponse(
-            status_code=400,
-            content={"error": "Request body cannot be empty"},
-        )
-
-    task = find_task(task_id)
-    if task is None:
-        return JSONResponse(
-            status_code=404,
-            content={"error": f"Task {task_id} not found"},
-        )
-
-    # Only update fields that were actually provided.
-    if "title" in body:
-        task["title"] = body["title"]
-    if "done" in body:
-        task["done"] = body["done"]
-
-    return task
-
-
-@app.delete("/tasks/{task_id}")
-def delete_task(task_id: int):
-    """Delete a task by id. Returns 204 on success, 404 if not found."""
-    task = find_task(task_id)
-    if task is None:
-        return JSONResponse(
-            status_code=404,
-            content={"error": f"Task {task_id} not found"},
-        )
-
-    tasks.remove(task)
-    return JSONResponse(status_code=204, content=None)
-
-
-# ---------------------------------------------------------------------------
-# Stats endpoint
-# ---------------------------------------------------------------------------
-
-@app.get("/stats")
-def get_stats():
-    """Return counts of total, done, and open tasks."""
-    total = len(tasks)
-    done_count = sum(1 for task in tasks if task["done"])
-    open_count = total - done_count
-
-    return {
-        "total": total,
-        "done": done_count,
-        "open": open_count,
-    }
-
-
-# ---------------------------------------------------------------------------
-# Reset endpoint
-# ---------------------------------------------------------------------------
-
-@app.post("/reset")
-def reset_tasks():
-    """Restore the original three example tasks."""
-    global tasks
-    tasks = [task.copy() for task in DEFAULT_TASKS]
-
-    return {
-        "message": "Tasks have been reset to the default list",
-        "tasks": tasks,
-    }
-
-### What the AI did better
-
-The AI reduced repeated code by creating a reusable `find_task()` helper function. It also kept the original tasks in a separate `DEFAULT_TASKS` list, making the reset logic cleaner and safer. Its code was more organized through section headings, docstrings, and clearer names.
-
-### What the AI got wrong or ignored
-
-The DELETE endpoint returned a `JSONResponse` with `content=None` while using status code 204. A 204 response should contain no body, so returning an empty response would be more correct. The AI also used raw `Request` objects for POST and PUT, which made the expected JSON body less clearly documented in Swagger. In addition, PUT accepted unknown fields and invalid values without validation.
-
-### What my prompt forgot to specify
-
-My prompt did not specify whether PUT should reject unknown fields, empty titles, or non-boolean `done` values. It also did not clearly state that a successful DELETE response must contain no body. The AI therefore made these decisions itself.
-
-### Rematch
+I improved my prompt by adding stricter validation rules for PUT requests and by specifying that DELETE must return a completely empty HTTP 204 response. The second version matched the intended behavior more closely.
 
 I improved the prompt by adding strict validation requirements for PUT and by specifying that DELETE must return a completely empty 204 response. The regenerated version handled invalid updates more carefully and returned the correct empty DELETE response.
 
