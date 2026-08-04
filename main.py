@@ -1,5 +1,36 @@
 from fastapi import FastAPI, Body, status
 from fastapi.responses import JSONResponse
+import sqlite3
+
+conn = sqlite3.connect("tasks.db")
+cursor = conn.cursor()
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    done BOOLEAN NOT NULL DEFAULT 0
+)
+""")
+
+# Check how many tasks already exist
+cursor.execute("SELECT COUNT(*) FROM tasks")
+count = cursor.fetchone()[0]
+
+# Insert the example tasks only if the table is empty
+if count == 0:
+    cursor.executemany("""
+        INSERT INTO tasks (title, done)
+        VALUES (?, ?)
+    """, [
+        ("Study FastAPI", False),
+        ("Buy groceries", True),
+        ("Go to the gym", False)
+    ])
+
+conn.commit()
+
+
 app = FastAPI()
 tasks = [
     {"id": 1, "title": "Study FastAPI", "done": False},
