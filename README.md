@@ -186,8 +186,9 @@ This query was executed manually using **DB Browser for SQLite**.
 
 The database was explored using **DB Browser for SQLite**.
 
+## Database Screenshot
 
-![SQLite Database](images/database-screenshot.png)
+![SQLite Database](database-screenshot.png.png)
 
 ---
 
