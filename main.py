@@ -105,23 +105,37 @@ def get_task(id: int):
         "done": bool(row[2])
     }
 
-@app.post("/tasks", status_code=status.HTTP_201_CREATED, summary="Create a new task") #When someone sends a POST(create) request to /tasks, take the JSON from the request body, store it in the variable task, and run the create_task function. return HTTP status 201 (Created)
+@app.post(
+    "/tasks",
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new task"
+)
 def create_task(task=Body()):
     title = task.get("title")
 
     if title is None or title == "":
         return JSONResponse(
-        status_code=400,
-        content={"error": "Title cannot be empty"}
+            status_code=400,
+            content={"error": "Title cannot be empty"}
+        )
+
+    db = sqlite3.connect("tasks.db")
+    cursor = db.cursor()
+
+    cursor.execute(
+        "INSERT INTO tasks (title, done) VALUES (?, ?)",
+        (title, False)
     )
 
-    new_task = {
-        "id": len(tasks) + 1,
+    new_id = cursor.lastrowid
+    db.commit()
+    db.close()
+
+    return {
+        "id": new_id,
         "title": title,
         "done": False
     }
-    tasks.append(new_task)
-    return new_task
 
 @app.put("/tasks/{id}", summary="Update a task")  ##When someone sends a PUT (update) request to /tasks/{id}, take the id from the URL, take the JSON from the request body, store it in the variable task, run the update_task function.
 def update_task(id: int, task=Body()):
