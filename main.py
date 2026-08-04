@@ -53,34 +53,57 @@ def get_tasks(
     done: bool | None = None,
     search: str | None = None
 ):
+    db = sqlite3.connect("tasks.db")
+    cursor = db.cursor()
 
-    filtered_tasks = tasks
+    query = "SELECT * FROM tasks"
+    conditions = []
+    values = []
 
     if done is not None:
-        filtered_tasks = [
-            task
-            for task in filtered_tasks
-            if task["done"] == done
-        ]
+        conditions.append("done = ?")
+        values.append(done)
 
     if search is not None:
-        filtered_tasks = [
-            task
-            for task in filtered_tasks
-            if search.lower() in task["title"].lower()
-        ]
+        conditions.append("title LIKE ?")
+        values.append(f"%{search}%")
 
-    return filtered_tasks
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+
+    cursor.execute(query, values)
+    rows = cursor.fetchall()
+    db.close()
+
+    return [
+        {"id": row[0], "title": row[1], "done": bool(row[2])}
+        for row in rows
+    ]
 
 @app.get("/tasks/{id}", summary="Get a task by ID")
 def get_task(id: int):
-    for task in tasks: #For each task in the tasks list... (search the task)
-        if task["id"] == id:
-            return task
-    return JSONResponse(
-    status_code=404,
-    content={"error": f"Task {id} not found"}
-)
+    db = sqlite3.connect("tasks.db")
+    cursor = db.cursor()
+
+    cursor.execute(
+        "SELECT * FROM tasks WHERE id = ?",
+        (id,)
+    )
+
+    row = cursor.fetchone()
+    db.close()
+
+    if row is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": f"Task {id} not found"}
+        )
+
+    return {
+        "id": row[0],
+        "title": row[1],
+        "done": bool(row[2])
+    }
 
 @app.post("/tasks", status_code=status.HTTP_201_CREATED, summary="Create a new task") #When someone sends a POST(create) request to /tasks, take the JSON from the request body, store it in the variable task, and run the create_task function. return HTTP status 201 (Created)
 def create_task(task=Body()):
