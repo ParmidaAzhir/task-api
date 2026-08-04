@@ -186,7 +186,6 @@ This query was executed manually using **DB Browser for SQLite**.
 
 The database was explored using **DB Browser for SQLite**.
 
-> Save your screenshot as:
 
 ![SQLite Database](images/database-screenshot.png)
 
