@@ -204,17 +204,9 @@ http://127.0.0.1:8000/docs
 
 Every endpoint can be tested directly from the browser using the **Try it out** button.
 
-Save a screenshot of your Swagger page as:
+# Swagger Screenshot
 
-```text
-images/swagger.png
-```
-
-Then replace the line below with your actual image:
-
-```markdown
-![Swagger UI](images/swagger.png)
-```
+![Swagger UI](swagger.png.png)
 
 ---
 
