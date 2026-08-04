@@ -137,7 +137,7 @@ def create_task(task=Body()):
         "done": False
     }
 
-@app.put("/tasks/{id}", summary="Update a task")  ##When someone sends a PUT (update) request to /tasks/{id}, take the id from the URL, take the JSON from the request body, store it in the variable task, run the update_task function.
+@app.put("/tasks/{id}", summary="Update a task")
 def update_task(id: int, task=Body()):
 
     if task == {}:
@@ -146,39 +146,86 @@ def update_task(id: int, task=Body()):
             content={"error": "Request body cannot be empty"}
         )
 
-    for existing_task in tasks:
-        if existing_task["id"] == id:
+    db = sqlite3.connect("tasks.db")
+    cursor = db.cursor()
 
-            if "title" in task:
-                if task["title"] is None or task["title"] == "":
-                    return JSONResponse(
-                        status_code=400,
-                        content={"error": "Title cannot be empty"}
-                    )
+    cursor.execute(
+        "SELECT * FROM tasks WHERE id = ?",
+        (id,)
+    )
+    row = cursor.fetchone()
 
-                existing_task["title"] = task["title"]
+    if row is None:
+        db.close()
+        return JSONResponse(
+            status_code=404,
+            content={"error": f"Task {id} not found"}
+        )
 
-            if "done" in task:
-                existing_task["done"] = task["done"]
+    title = row[1]
+    done = bool(row[2])
 
-            return existing_task
+    if "title" in task:
+        if task["title"] is None or task["title"] == "":
+            db.close()
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Title cannot be empty"}
+            )
 
-    return JSONResponse(
-        status_code=404,
-        content={"error": f"Task {id} not found"}
+        title = task["title"]
+
+    if "done" in task:
+        done = task["done"]
+
+    cursor.execute(
+        """
+        UPDATE tasks
+        SET title = ?, done = ?
+        WHERE id = ?
+        """,
+        (title, done, id)
     )
 
-@app.delete("/tasks/{id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a task") ##When someone sends a DELETE request to /tasks/{id}, find the task with that id, run the delete_task function, and return HTTP status 204 (No Content) if successful.
+    db.commit()
+    db.close()
+
+    return {
+        "id": id,
+        "title": title,
+        "done": done
+    }
+
+@app.delete(
+    "/tasks/{id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a task"
+)
 def delete_task(id: int):
-     for existing_task in tasks:
-        if existing_task["id"] == id:
-            tasks.remove(existing_task)
-            return
-     return JSONResponse(
-        status_code=404,
-        content={"error": f"Task {id} not found"}
+
+    db = sqlite3.connect("tasks.db")
+    cursor = db.cursor()
+
+    cursor.execute(
+        "SELECT * FROM tasks WHERE id = ?",
+        (id,)
     )
 
+    if cursor.fetchone() is None:
+        db.close()
+        return JSONResponse(
+            status_code=404,
+            content={"error": f"Task {id} not found"}
+        )
+
+    cursor.execute(
+        "DELETE FROM tasks WHERE id = ?",
+        (id,)
+    )
+
+    db.commit()
+    db.close()
+    
 @app.get("/stats", summary="Get task statistics")
 def get_stats():
     total = len(tasks)
