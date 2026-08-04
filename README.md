@@ -188,15 +188,7 @@ The database was explored using **DB Browser for SQLite**.
 
 > Save your screenshot as:
 
-```text
-images/database-screenshot.png
-```
-
-Then replace the line below with your actual image:
-
-```markdown
 ![SQLite Database](images/database-screenshot.png)
-```
 
 ---
 
