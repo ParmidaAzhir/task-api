@@ -1,9 +1,8 @@
 # Task API
 
-A REST API built with **FastAPI** and **SQLite** for managing tasks.
+A REST API built with **FastAPI**, **PostgreSQL**, and **Docker** for managing tasks.
 
-This project demonstrates the fundamental CRUD (Create, Read, Update, Delete) operations while introducing persistent data storage using SQLite. The API also provides automatically generated interactive documentation using Swagger UI.
-
+This project demonstrates the fundamental CRUD (Create, Read, Update, Delete) operations using PostgreSQL for persistent storage. The entire application runs with Docker Compose and provides automatically generated interactive documentation using Swagger UI.
 ---
 
 # Features
@@ -15,7 +14,8 @@ This project demonstrates the fundamental CRUD (Create, Read, Update, Delete) op
 - Delete a task
 - Filter tasks by completion status
 - Search tasks by title
-- Store tasks permanently using SQLite
+- Store tasks permanently using PostgreSQL
+- Run the entire application with Docker Compose
 - Interactive Swagger UI documentation
 
 ---
@@ -25,41 +25,24 @@ This project demonstrates the fundamental CRUD (Create, Read, Update, Delete) op
 - Python
 - FastAPI
 - Uvicorn
-- SQLite
-- Python `sqlite3`
+- PostgreSQL
+- Docker
+- Docker Compose
+- Psycopg
 
 ---
 
 # Database
 
-This project uses **SQLite** because it is:
-
-- Lightweight
-- Requires no separate database server
-- Stores data in a single file
-- Keeps data after the server restarts
-
-Database file:
-
-```text
-tasks.db
-```
+This project uses **PostgreSQL** running inside a Docker container.
 
 The application automatically:
 
-- Creates `tasks.db` if it does not exist
+- Connects to PostgreSQL using the `DATABASE_URL` environment variable
 - Creates the `tasks` table if it does not exist
-- Inserts the three example tasks when the table is empty
+- Inserts the three example tasks only when the table is empty
 
-Because `tasks.db` is ignored by Git, every new clone automatically creates a fresh database the first time the project is run.
-
-SQLite stores Boolean values as:
-
-| Value | Meaning |
-|------|---------|
-| 0 | False |
-| 1 | True |
-
+Database data is stored in a Docker volume, so tasks remain available even after restarting the containers.
 ---
 
 # Installation
@@ -76,31 +59,17 @@ Go into the project folder:
 cd task-api
 ```
 
-Create a virtual environment:
+Copy the example environment file:
 
 ```bash
-python -m venv venv
+cp .env.example .env
 ```
 
-Activate it (Windows):
+Start the application:
 
 ```bash
-venv\Scripts\activate
+docker compose up --build
 ```
-
-Install the required packages:
-
-```bash
-pip install fastapi uvicorn
-```
-
-Run the project:
-
-```bash
-uvicorn main:app --reload
-```
-
-The database is created automatically the first time the application starts.
 
 ---
 
@@ -172,23 +141,28 @@ Status code:
 
 # Example SQL Query
 
-Return all completed tasks:
+Return all tasks:
 
 ```sql
-SELECT * FROM tasks WHERE done = 1;
+SELECT * FROM tasks;
 ```
 
-This query was executed manually using **DB Browser for SQLite**.
+This query can be executed using:
+
+- psql
+- pgAdmin
+- TablePlus
+- DBeaver
 
 ---
 
 # Database Screenshot
 
-The database was explored using **DB Browser for SQLite**.
+The PostgreSQL database was inspected after running the application with Docker Compose.
 
 ## Database Screenshot
 
-![SQLite Database](database-screenshot.png.png)
+<img width="524" height="109" alt="image" src="https://github.com/user-attachments/assets/aa01bc21-1732-41fa-8772-dd0003fc99e1" />
 
 ---
 
@@ -216,12 +190,13 @@ Every endpoint can be tested directly from the browser using the **Try it out** 
 task-api/
 │
 ├── main.py
+├── repository.py
+├── Dockerfile
+├── compose.yaml
+├── requirements.txt
+├── .env.example
 ├── README.md
-├── .gitignore
-├── tasks.db
-└── images/
-    ├── database-screenshot.png
-    └── swagger.png
+└── .gitignore
 ```
 
 ---
@@ -235,7 +210,7 @@ task-api/
 - Added filtering and search
 - Added Swagger UI documentation
 
-## Week 3
+## Assignment 2
 
 - Replaced the in-memory task list with SQLite
 - Created the database automatically
@@ -245,6 +220,15 @@ task-api/
 - Executed SQL queries manually using DB Browser for SQLite
 
 ---
+## Assignment 3
+
+- Migrated the API from SQLite to PostgreSQL
+- Connected FastAPI to PostgreSQL using Psycopg
+- Stored the connection string in a `.env` file
+- Moved database logic into `repository.py`
+- Containerized the application with Docker
+- Used Docker Compose to run the API and PostgreSQL together
+- Added persistent storage using Docker volumes
 
 # Author
 
