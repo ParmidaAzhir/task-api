@@ -1,10 +1,12 @@
-from fastapi import FastAPI, Body, status
+from fastapi import FastAPI, Body, status, Response
 from fastapi.responses import JSONResponse
-import sqlite3
 from repository import (
     initialize_database,
     get_all_tasks,
     get_task_by_id,
+    create_task as create_task_in_db,
+    update_task_by_id,
+    delete_task_by_id,
 )
 
 initialize_database()
@@ -55,23 +57,7 @@ def create_task(task=Body()):
             content={"error": "Title cannot be empty"}
         )
 
-    db = sqlite3.connect("tasks.db")
-    cursor = db.cursor()
-
-    cursor.execute(
-        "INSERT INTO tasks (title, done) VALUES (?, ?)",
-        (title, False)
-    )
-
-    new_id = cursor.lastrowid
-    db.commit()
-    db.close()
-
-    return {
-        "id": new_id,
-        "title": title,
-        "done": False
-    }
+    return create_task_in_db(title)
 
 @app.put("/tasks/{id}", summary="Update a task")
 def update_task(id: int, task=Body()):
@@ -82,28 +68,19 @@ def update_task(id: int, task=Body()):
             content={"error": "Request body cannot be empty"}
         )
 
-    db = sqlite3.connect("tasks.db")
-    cursor = db.cursor()
+    existing_task = get_task_by_id(id)
 
-    cursor.execute(
-        "SELECT * FROM tasks WHERE id = ?",
-        (id,)
-    )
-    row = cursor.fetchone()
-
-    if row is None:
-        db.close()
+    if existing_task is None:
         return JSONResponse(
             status_code=404,
-            content={"error": f"Task {id} not found"}
+            content={"error": "Task not found"}
         )
 
-    title = row[1]
-    done = bool(row[2])
+    title = existing_task["title"]
+    done = existing_task["done"]
 
     if "title" in task:
         if task["title"] is None or task["title"] == "":
-            db.close()
             return JSONResponse(
                 status_code=400,
                 content={"error": "Title cannot be empty"}
@@ -114,23 +91,7 @@ def update_task(id: int, task=Body()):
     if "done" in task:
         done = task["done"]
 
-    cursor.execute(
-        """
-        UPDATE tasks
-        SET title = ?, done = ?
-        WHERE id = ?
-        """,
-        (title, done, id)
-    )
-
-    db.commit()
-    db.close()
-
-    return {
-        "id": id,
-        "title": title,
-        "done": done
-    }
+    return update_task_by_id(id, title, done)
 
 @app.delete(
     "/tasks/{id}",
@@ -138,59 +99,14 @@ def update_task(id: int, task=Body()):
     summary="Delete a task"
 )
 def delete_task(id: int):
+    deleted = delete_task_by_id(id)
 
-    db = sqlite3.connect("tasks.db")
-    cursor = db.cursor()
-
-    cursor.execute(
-        "SELECT * FROM tasks WHERE id = ?",
-        (id,)
-    )
-
-    if cursor.fetchone() is None:
-        db.close()
+    if not deleted:
         return JSONResponse(
             status_code=404,
-            content={"error": f"Task {id} not found"}
+            content={"error": "Task not found"}
         )
 
-    cursor.execute(
-        "DELETE FROM tasks WHERE id = ?",
-        (id,)
-    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-    db.commit()
-    db.close()
 
-@app.get("/stats", summary="Get task statistics")
-def get_stats():
-    total = len(tasks)
-    done = 0
-
-    for task in tasks:
-        if task["done"]:
-            done += 1
-    
-    open_tasks = total - done
-
-    return {
-        "total": total,
-        "done": done,
-        "open": open_tasks
-    }
-
-@app.post("/reset", summary="Reset tasks")
-def reset_tasks():
-
-    tasks.clear()
-
-    tasks.extend([
-        {"id": 1, "title": "Study FastAPI", "done": False},
-        {"id": 2, "title": "Buy groceries", "done": True},
-        {"id": 3, "title": "Go to the gym", "done": False},
-    ])
-
-    return {
-        "message": "Tasks reset successfully",
-        "tasks": tasks
-    }
