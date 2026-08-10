@@ -1,3 +1,6 @@
+import os
+from dotenv import load_dotenv
+from supabase import create_client, Client
 from fastapi import FastAPI, Body, status, Response
 from fastapi.responses import JSONResponse
 from repository import (
@@ -9,9 +12,43 @@ from repository import (
     delete_task_by_id,
 )
 
-initialize_database()
+load_dotenv()
+
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+#initialize_database()
 
 app = FastAPI()
+
+@app.post("/auth/signup", status_code=status.HTTP_201_CREATED)
+def signup(data=Body()):
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Email and password are required"}
+        )
+
+    try:
+        response = supabase.auth.sign_up({
+            "email": email,
+            "password": password
+        })
+
+        return {
+            "user": response.user
+        }
+
+    except Exception as e:
+        return JSONResponse(
+            status_code=400,
+            content={"error": str(e)}
+        )
 
 @app.get("/", summary="Get API information") #If someone sends a GET(get reads data) request to the path /, execute the function below. 
 def root():
