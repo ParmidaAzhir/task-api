@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from supabase import create_client, Client
-from fastapi import FastAPI, Body, status, Response
+from fastapi import FastAPI, Body, status, Response, Header
 from fastapi.responses import JSONResponse
 from repository import (
     initialize_database,
@@ -77,6 +77,38 @@ def login(data=Body()):
             status_code=401,
             content={"error": "Invalid login credentials"}
         )
+
+@app.get("/public/info")
+def public_info():
+    return {
+        "message": "Welcome stranger! This info is public."
+    }
+@app.get("/protected/profile")
+def protected_profile(authorization: str | None = Header(default=None)):
+
+    if not authorization:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Access token required"}
+        )
+
+    if not authorization.startswith("Bearer "):
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Access token required"}
+        )
+
+    token = authorization.removeprefix("Bearer ").strip()
+
+    if not token:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Access token required"}
+        )
+
+    return {
+        "message": "Token received"
+    }
 
 @app.get("/", summary="Get API information") #If someone sends a GET(get reads data) request to the path /, execute the function below. 
 def root():
