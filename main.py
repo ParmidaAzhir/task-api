@@ -50,6 +50,34 @@ def signup(data=Body()):
             content={"error": str(e)}
         )
 
+@app.post("/auth/login")
+def login(data=Body()):
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Email and password are required"}
+        )
+
+    try:
+        response = supabase.auth.sign_in_with_password({
+            "email": email,
+            "password": password
+        })
+
+        return {
+            "access_token": response.session.access_token,
+            "refresh_token": response.session.refresh_token
+        }
+
+    except Exception:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Invalid login credentials"}
+        )
+
 @app.get("/", summary="Get API information") #If someone sends a GET(get reads data) request to the path /, execute the function below. 
 def root():
     return {
