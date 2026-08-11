@@ -1,7 +1,8 @@
 import os
 from dotenv import load_dotenv
 from supabase import create_client, Client
-from fastapi import FastAPI, Body, status, Response, Header
+from fastapi import FastAPI, Body, status, Response, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
 from repository import (
     initialize_database,
@@ -22,6 +23,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 #initialize_database()
 
 app = FastAPI()
+security = HTTPBearer()
 
 @app.post("/auth/signup", status_code=status.HTTP_201_CREATED)
 def signup(data=Body()):
@@ -84,31 +86,26 @@ def public_info():
         "message": "Welcome stranger! This info is public."
     }
 @app.get("/protected/profile")
-def protected_profile(authorization: str | None = Header(default=None)):
+def protected_profile(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
 
-    if not authorization:
+    try:
+        response = supabase.auth.get_user(token)
+        user = response.user
+
+        return {
+            "id": user.id,
+            "email": user.email,
+            "created_at": user.created_at
+        }
+
+    except Exception:
         return JSONResponse(
             status_code=401,
-            content={"error": "Access token required"}
+            content={"error": "Invalid or expired token"}
         )
-
-    if not authorization.startswith("Bearer "):
-        return JSONResponse(
-            status_code=401,
-            content={"error": "Access token required"}
-        )
-
-    token = authorization.removeprefix("Bearer ").strip()
-
-    if not token:
-        return JSONResponse(
-            status_code=401,
-            content={"error": "Access token required"}
-        )
-
-    return {
-        "message": "Token received"
-    }
 
 @app.get("/", summary="Get API information") #If someone sends a GET(get reads data) request to the path /, execute the function below. 
 def root():
