@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from supabase import create_client, Client
-from fastapi import FastAPI, Body, status, Response, Depends
+from fastapi import FastAPI, Body, status, Response, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
 from repository import (
@@ -24,6 +24,21 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 app = FastAPI()
 security = HTTPBearer()
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+
+    try:
+        response = supabase.auth.get_user(token)
+        return response.user
+
+    except Exception:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired token"
+        )
 
 @app.post("/auth/signup", status_code=status.HTTP_201_CREATED)
 def signup(data=Body()):
@@ -86,25 +101,37 @@ def public_info():
         "message": "Welcome stranger! This info is public."
     }
 @app.get("/protected/profile")
-def protected_profile(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
-    token = credentials.credentials
+def protected_profile(user=Depends(get_current_user)):
+    return {
+        "id": user.id,
+        "email": user.email,
+        "created_at": user.created_at
+    }
 
+@app.get("/protected/profile")
+def protected_profile(user=Depends(get_current_user)):
+    return {
+        "id": user.id,
+        "email": user.email,
+        "created_at": user.created_at
+    }
+
+
+@app.get("/protected/dashboard")
+def protected_dashboard(user=Depends(get_current_user)):
+    return {
+        "message": f"Welcome {user.email}"
+    }
+
+@app.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(user=Depends(get_current_user)):
     try:
-        response = supabase.auth.get_user(token)
-        user = response.user
-
-        return {
-            "id": user.id,
-            "email": user.email,
-            "created_at": user.created_at
-        }
-
+        supabase.auth.sign_out()
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
     except Exception:
         return JSONResponse(
-            status_code=401,
-            content={"error": "Invalid or expired token"}
+            status_code=400,
+            content={"error": "Logout failed"}
         )
 
 @app.get("/", summary="Get API information") #If someone sends a GET(get reads data) request to the path /, execute the function below. 
