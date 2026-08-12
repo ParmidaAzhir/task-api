@@ -19,6 +19,20 @@ This project demonstrates the fundamental CRUD (Create, Read, Update, Delete) op
 - Interactive Swagger UI documentation
 
 ---
+# Authentication
+
+This API uses **Supabase Auth** for user authentication.
+
+Users can sign up and log in with email and password. After login, Supabase returns an **access token (JWT)** and a **refresh token**.
+
+Protected routes require the access token in the Authorization header:
+
+```text
+Authorization: Bearer <access_token>
+```
+
+FastAPI verifies the token with Supabase before allowing access.
+
 
 # Technologies
 
@@ -29,6 +43,9 @@ This project demonstrates the fundamental CRUD (Create, Read, Update, Delete) op
 - Docker
 - Docker Compose
 - Psycopg
+- Supabase Auth
+- JWT
+- python-dotenv
 
 ---
 
@@ -72,6 +89,20 @@ docker compose up --build
 ```
 
 ---
+# Environment Variables
+
+Create a `.env` file using `.env.example`.
+
+Example:
+
+```env
+DATABASE_URL=postgresql://postgres:your_password@localhost:5432/tasks
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_publishable_key
+```
+
+The real `.env` file is ignored by Git and must not be committed.
+
 
 # API URLs
 
@@ -104,6 +135,16 @@ http://127.0.0.1:8000/docs
 | DELETE | `/tasks/{id}` | Delete a task |
 
 ---
+## Authentication Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|---|
+| POST | `/auth/signup` | Create a new user | No |
+| POST | `/auth/login` | Log in and receive tokens | No |
+| POST | `/auth/logout` | Log out | Yes |
+| GET | `/public/info` | Public information | No |
+| GET | `/protected/profile` | Get authenticated user profile | Yes |
+| GET | `/protected/dashboard` | Example protected route | Yes |
 
 # Example Request
 
@@ -183,6 +224,20 @@ Every endpoint can be tested directly from the browser using the **Try it out** 
 ![Swagger UI](swagger.png.png)
 
 ---
+## Swagger Authentication
+
+Protected routes show a lock icon in Swagger UI.
+
+To test them:
+
+1. Run `POST /auth/login`.
+2. Copy the `access_token`.
+3. Click **Authorize** at the top of Swagger.
+4. Paste the token.
+5. Run `GET /protected/profile` or `GET /protected/dashboard`.
+
+A valid token returns `200`. An invalid or tampered token returns `401`.
+
 
 # Project Structure
 
@@ -229,6 +284,19 @@ task-api/
 - Containerized the application with Docker
 - Used Docker Compose to run the API and PostgreSQL together
 - Added persistent storage using Docker volumes
+
+  ## Assignment 4
+
+- Added Supabase authentication
+- Added signup and login endpoints
+- Returned JWT access and refresh tokens
+- Added public and protected routes
+- Verified JWT tokens with Supabase
+- Added reusable authentication dependency
+- Added protected dashboard route
+- Added logout endpoint
+- Added Swagger Bearer authorization
+- Tested valid and tampered tokens
 
 # Author
 
