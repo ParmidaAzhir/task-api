@@ -22,7 +22,11 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 #initialize_database()
 
-app = FastAPI()
+app = FastAPI(
+    title="Task API with Supabase Auth",
+    description="Secure FastAPI with Supabase authentication and protected routes.",
+    version="1.0.0"
+)
 security = HTTPBearer()
 
 def get_current_user(
@@ -100,14 +104,6 @@ def public_info():
     return {
         "message": "Welcome stranger! This info is public."
     }
-@app.get("/protected/profile")
-def protected_profile(user=Depends(get_current_user)):
-    return {
-        "id": user.id,
-        "email": user.email,
-        "created_at": user.created_at
-    }
-
 @app.get("/protected/profile")
 def protected_profile(user=Depends(get_current_user)):
     return {
